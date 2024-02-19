@@ -14,6 +14,8 @@ CARRIAGE_RETURN = 13
 TAB = 9
 NEW_LINE = 10
 SPACE = 32
+NOT_DEFINED = 0
+REPLACEMENT_CHARACTER = 65533
 
 # forbidden values for cid:
 FORBIDDEN_CHARS = {bytes([10]),   # ASCII 10 - new line
@@ -40,8 +42,8 @@ class PdfFont:
             recalcTimestamp=False
             )
         self.cmap = self.ttfont.getBestCmap()
-        self.cid_counter = 0
-        self.char_code_point_to_cid: dict[int, bytes] = {}
+        self.cid_counter = 1
+        self.char_code_point_to_cid: dict[int, int] = {}
         self.cid_info: dict[int,       # cid
                             tuple[
                                 int,   # width
@@ -64,6 +66,7 @@ class PdfFont:
             50 + int(pow((self.ttfont["OS/2"].usWeightClass / 65), 2)))  # type: ignore
         self.missing_width = round(
             self.scale * self.ttfont["hmtx"].metrics[".notdef"][0])  # type: ignore
+        self.set_not_defined_unicode_value()
         self.obj_num: None | PdfObj = None
         self.obj_descendant_fonts: None | PdfObj = None
         self.obj_to_unicode: None | PdfObj = None
@@ -112,26 +115,13 @@ class PdfFont:
             b.extend(b"\x00\x00")
         return b
 
-    def set_character_when_found_in_font(self, char_code_point: int) -> None:
-        glyph_name = self.cmap[char_code_point]
-        glyph_width = self.ttfont["hmtx"].metrics[glyph_name][0]  # type: ignore
-        self.char_code_point_to_cid[char_code_point] = (
-            self.cid_counter)
-        self.cid_info[self.cid_counter] = (
-            round(self.scale * glyph_width + 0.001),
-            char_code_point,
-            glyph_name)
-
-    def set_character_when_not_found_in_font(
-        self, char_code_point: int) -> None:
+    def set_not_defined_unicode_value(
+        self) -> None:
         glyph_name = ".notdef"
         glyph_width = self.ttfont["hmtx"].metrics[glyph_name][0]  # type: ignore
-        self.char_code_point_to_cid[char_code_point] = (
-            self.cid_counter
-        )
-        self.cid_info[self.cid_counter] = (
+        self.cid_info[NOT_DEFINED] = (
             round(self.scale * glyph_width + 0.001),
-            char_code_point,
+            REPLACEMENT_CHARACTER,
             glyph_name)
 
     def get_cid_in_bytes(self, input_string: str) -> bytes | None:
@@ -140,13 +130,20 @@ class PdfFont:
             char_code_point = ord(char)
             if char_code_point in {CARRIAGE_RETURN, TAB, NEW_LINE}:
                 return None
-            # if char_code_point not in self.char_code_point_to_cid:
-            try:
-                self.set_character_when_found_in_font(char_code_point)
-            except KeyError:
-                # for unicodes not defined in font
-                self.set_character_when_not_found_in_font(char_code_point)
-            self._increase_cid()
+            if char_code_point not in self.char_code_point_to_cid:
+                try:
+                    glyph_name = self.cmap[char_code_point]
+                    glyph_width = self.ttfont["hmtx"].metrics[glyph_name][0]  # type: ignore
+                    self.char_code_point_to_cid[char_code_point] = (
+                        self.cid_counter)
+                    self.cid_info[self.cid_counter] = (
+                        round(self.scale * glyph_width + 0.001),
+                        char_code_point,
+                        glyph_name)
+                    self._increase_cid()
+                except KeyError:
+                    # for unicodes not defined in font
+                    self.char_code_point_to_cid[char_code_point] = NOT_DEFINED
             b.extend(
                 self.char_code_point_to_cid[char_code_point].to_bytes(2, "big"))
         return bytes(b)

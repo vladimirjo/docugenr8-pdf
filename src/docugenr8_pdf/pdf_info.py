@@ -3,7 +3,7 @@ from datetime import datetime
 from .collector import Collector
 
 
-class DocumentInfo:
+class PdfInfo:
     def __init__(self, coll: Collector) -> None:
         self._coll = coll
         # Document's title

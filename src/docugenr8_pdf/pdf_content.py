@@ -1,4 +1,9 @@
-class PdfContent:
+from math import cos
+from math import radians
+from math import sin
+
+
+class PdfContent:  # noqa: PLR0904
     def __init__(self):
         self.pdf_version = "1.3"
         self.stream: bytearray = bytearray()
@@ -8,17 +13,21 @@ class PdfContent:
         self.stream.extend(output)
 
     def add_clipping(self) -> None:
-        output = f"W n\n".encode("ascii")
+        output = "W n\n".encode("ascii")
         self.stream.extend(output)
 
     def add_fill_color(self, rgb: tuple[int, int, int]) -> None:
         pdf_r = rgb[0] / 255
         pdf_g = rgb[1] / 255
         pdf_b = rgb[2] / 255
-        output = f"{pdf_r} " f"{pdf_g} " f"{pdf_b} rg\n"
+        output = f"{pdf_r} {pdf_g} {pdf_b} rg\n"
         self.stream.extend(output.encode("ascii"))
 
-    def add_page_font_with_size(self, page_font: str, font_size: float) -> None:
+    def add_page_font_with_size(
+        self,
+        page_font: str,
+        font_size: float
+        ) -> None:
         output = f"BT /{page_font} {font_size} Tf ET\n"
         self.stream.extend(output.encode("ascii"))
 
@@ -26,7 +35,7 @@ class PdfContent:
         pdf_r = rgb[0] / 255
         pdf_g = rgb[1] / 255
         pdf_b = rgb[2] / 255
-        output = f"{pdf_r} " f"{pdf_g} " f"{pdf_b} RG\n"
+        output = f"{pdf_r} {pdf_g} {pdf_b} RG\n"
         self.stream.extend(output.encode("ascii"))
 
     def add_line_pattern(
@@ -98,13 +107,13 @@ class PdfContent:
         has_stroke: bool,
     ) -> None:
         style = ""
-        if has_fill == True and has_stroke == True:
+        if has_fill is True and has_stroke is True:
             style = "B"
-        if has_fill == True and has_stroke == False:
+        if has_fill is True and has_stroke is False:
             style = "f"
-        if has_fill == False and has_stroke == True:
+        if has_fill is False and has_stroke is True:
             style = "S"
-        if has_fill == False and has_stroke == False:
+        if has_fill is False and has_stroke is False:
             style = ""
         output = f"{x} {y} {width} {height} re {style}\n"
         self.stream.extend(output.encode("ascii"))
@@ -114,8 +123,6 @@ class PdfContent:
         self.stream.extend(output.encode("ascii"))
 
     def add_rotate(self, x_pos: float, y_pos: float, degrees: float) -> None:
-        from math import sin, cos, radians
-
         cos_r = cos(radians(degrees))
         sin_r = sin(radians(degrees))
         output = (

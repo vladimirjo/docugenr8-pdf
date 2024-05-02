@@ -88,9 +88,6 @@ docs/build/
 # PyBuilder
 target/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
 # pyenv
 .python-version
 
@@ -126,6 +123,5 @@ venv.bak/
 *.isorted
 
 # VS Code
-.vscode
 *.code-workspace
 .history

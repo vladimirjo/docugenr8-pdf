@@ -10,15 +10,14 @@ from .core import Collector
 from .core import PdfObj
 
 
+MAX_TWO_BYTE_VALUE = 65535
 CARRIAGE_RETURN = 13
 TAB = 9
 NEW_LINE = 10
 SPACE = 32
 NOT_DEFINED = 0
 REPLACEMENT_CHARACTER = 65533
-
-# forbidden values for cid:
-FORBIDDEN_CHARS = {bytes([10]),   # ASCII 10 - new line
+FORBIDDEN_CIDS = {bytes([10]),   # ASCII 10 - new line
                    bytes([13]),   # ASCII 13 - carriage return
                    bytes([37]),   # ASCII 37 - %
                    bytes([40]),   # ASCII 40 - (
@@ -108,7 +107,7 @@ class PdfFont:
             cid_to_gid[cid] = self.ttfont.getGlyphID(
                 info[2]).to_bytes(2, "big")
         b = bytearray()
-        for position in range(65536):
+        for position in range(MAX_TWO_BYTE_VALUE + 1):
             if position in cid_to_gid:
                 b.extend(cid_to_gid[position])
                 continue
@@ -153,12 +152,11 @@ class PdfFont:
         self
         ) -> None:
         self.cid_counter += 1
-        # Ensure the result fits in 2 bytes
-        if self.cid_counter > 65535:  # noqa: PLR2004
+        if self.cid_counter > MAX_TWO_BYTE_VALUE:
             raise ValueError("The cid number has exceeded the limit.")
         byte_value = self.cid_counter.to_bytes(2, byteorder="big")
-        if (byte_value[0].to_bytes(1, "big") in FORBIDDEN_CHARS
-            or byte_value[1].to_bytes(1, "big") in FORBIDDEN_CHARS):
+        if (byte_value[0].to_bytes(1, "big") in FORBIDDEN_CIDS
+            or byte_value[1].to_bytes(1, "big") in FORBIDDEN_CIDS):
             self._increase_cid()
 
     def generate_pdf_obj(self, collector: Collector):

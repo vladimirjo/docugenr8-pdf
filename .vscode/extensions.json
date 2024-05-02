@@ -1,0 +1,50 @@
+{
+    "recommendations": [
+        // Python language support with extension access points
+        // for IntelliSense (Pylance), Debugging (Python Debugger),
+        // linting, formatting, refactoring, unit tests, and more.
+        "ms-python.python",
+        // A performant, feature-rich language server for Python in VS Code
+        "ms-python.vscode-pylance",
+        // An extension pack that lets you open any folder in a container, on a remote machine, or in WSL and take advantage of VS Code's full feature set
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        // AI-assisted development
+        "VisualStudioExptTeam.vscodeintellicode",
+        // Allows viewing and editing files in a hex editor
+        "ms-vscode.hexeditor",
+        // A Visual Studio Code extension with support for the Ruff linter.
+        "charliermarsh.ruff",
+        // Generates python docstrings automatically
+        "njpwerner.autodocstring",
+        // Code formatter using prettier
+        "esbenp.prettier-vscode",
+        // Improve highlighting of errors, warnings and other language diagnostics
+        "usernamehw.errorlens",
+        // Automatic generation of python __init__.py files and import statements within folders
+        "DiogoNolasco.pyinit",
+        // Type hint completion for Python
+        "njqdev.vscode-python-typehint",
+        // Improve your code commenting by annotating with alert, informational, TODOs, and more!
+        "aaron-bond.better-comments",
+        // Visual Studio Code plugin that autocompletes filenames
+        "christian-kohler.path-intellisense",
+        // Compare (diff) text selections within a file, across files, or to the clipboard
+        "ryu1kn.partial-diff",
+        // YAML Language Support by Red Hat, with built-in Kubernetes syntax support
+        "redhat.vscode-yaml",
+        // All you need to write Markdown (keyboard shortcuts, table of contents, auto preview and more)
+        "yzhang.markdown-all-in-one",
+        // Markdown linting and style checking for Visual Studio Code
+        "DavidAnson.vscode-markdownlint",
+        // EditorConfig Support for Visual Studio Code
+        "EditorConfig.EditorConfig",
+        // Take beautiful screenshots of your code
+        "adpyke.codesnap",
+        // Fully-featured TOML support
+        "tamasfe.even-better-toml",
+        // Display pdf file in VSCode
+        "tomoki1207.pdf",
+        // Show SVG preview to the side panel
+        "vitaliymaz.vscode-svg-previewer",
+    ]
+}

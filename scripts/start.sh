@@ -20,6 +20,9 @@ source .venv/bin/activate
 # Install dev requirements from pyproject.toml
 python3.10 -m pip install -e ".[dev]"
 
+# Deactivate venv
+deactivate
+
 # Start VSCode
 if command -v code &> /dev/null
 then

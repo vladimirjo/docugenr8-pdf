@@ -20,7 +20,7 @@ version = { file = "version.txt" }
 [project.optional-dependencies]
 check = ["ruff", "mypy"]
 test = ["pytest", "pytest-cov"]
-build = ["build", "setuptools", "twine", "tox"]
+build = ["build", "setuptools", "twine"]
 dev = ["docugenr8-pdf[check, test, build]"]
 
 [tool.ruff]

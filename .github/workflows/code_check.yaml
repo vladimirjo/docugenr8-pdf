@@ -8,7 +8,7 @@ on:
             - main
 
 jobs:
-    lint:
+    code_check:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Repository
@@ -26,74 +26,7 @@ jobs:
             - name: Install Dependencies
               run: |
                   python -m pip install --upgrade pip
-                  python -m pip install tox
+                  python -m pip install -e ".[dev]"
 
-            - name: Run Linting
-              run: tox -e lint
-
-    format:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: 3.10.13
-
-            - name: Install Dependencies
-              run: |
-                  python -m pip install --upgrade pip
-                  python -m pip install tox
-
-            - name: Run Formatting
-              run: tox -e format
-
-    type_check:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: 3.10.13
-
-            - name: Install Dependencies
-              run: |
-                  python -m pip install --upgrade pip
-                  python -m pip install tox
-
-            - name: Run Type Check
-              run: tox -e type_check
-
-    tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: 3.10.13
-
-            - name: Install Dependencies
-              run: |
-                  python -m pip install --upgrade pip
-                  python -m pip install tox
-
-            - name: Run Tests
-              run: tox -e test
-
-    version_check:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-
-            - name: Run Check Version
-              shell: bash
-              run: bash $GITHUB_WORKSPACE/scripts/version.sh
+            - name: Run Code Check
+              run: bash $GITHUB_WORKSPACE/run.sh check

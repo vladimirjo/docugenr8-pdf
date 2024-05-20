@@ -46,5 +46,7 @@
         "tomoki1207.pdf",
         // Show SVG preview to the side panel
         "vitaliymaz.vscode-svg-previewer",
+        // Subtly change the workspace color of your workspace
+        "johnpapa.vscode-peacock"
     ]
 }

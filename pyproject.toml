@@ -5,10 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "docugenr8-pdf"
 authors = [{ name = "Vladimir Jovanovic", email = "vladimirjo@protonmail.com" }]
-description = "Docugenr8 add-on library for pdf operations"
+description = "Docugenr8 add-on library that generates pdf documents."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = []
+keywords = [
+    "docugenr8",
+    "core",
+    "PDF",
+    "image-integration",
+    "coordinate-system",
+    "text-formatting",
+    "python"
+]
 license = { text = "MIT" }
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = ["fonttools", "docugenr8-shared>=0.0.0,<1.0.0"]
@@ -21,9 +29,10 @@ version = { file = "version.txt" }
 check = ["ruff", "mypy"]
 test = ["pytest", "pytest-cov"]
 build = ["build", "setuptools", "twine"]
-dev = ["docugenr8-pdf[check, test, build]"]
+dev = ["@@OPT_DEPENDENCIES_DEV@@[check, test, build]"]
 
 [tool.ruff]
+line-length = 120
 extend-exclude = ["docs", "tests"]
 
 [tool.ruff.lint]

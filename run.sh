@@ -142,40 +142,36 @@ check_code(){
     fi
 
     local check_result=0
-    ruff check
-    if [ $? -ne 0 ]; then
+    if ! ruff check; then
         check_result=1
         warning "Linting Failed"
     else
         success "Linting Successful"
     fi
 
-    ruff format --check
-    if [ $? -ne 0 ]; then
+    if ! ruff format --check; then
         check_result=1
         warning "Formatting Failed"
     else
         success "Formatting Successful"
     fi
 
-    mypy src/
-    if [ $? -ne 0 ]; then
+    if ! mypy src/; then
         check_result=1
         warning "Type Check Failed"
     else
         success "Type Check Successful"
     fi
 
-    pytest --cov=$PACKAGE_NAME tests/
-    if [ $? -ne 0 ]; then
+    if ! pytest --cov="$PACKAGE_NAME" tests/; then
         check_result=1
         warning "Tests Failed"
     else
         success "Tests Successful"
     fi
 
-    check_version_file
-    if [ $? -ne 0 ]; then
+    
+    if ! check_version_file; then
         check_result=1
         warning "Version $FILE_VERSION exists on PyPI"
     else
@@ -199,7 +195,7 @@ check_code(){
 
 show_usage() {
     echo "Usage: $0 {check|publish}"
-    exit 1
+    return 1
 }
 
 # Check if at least one argument is passed

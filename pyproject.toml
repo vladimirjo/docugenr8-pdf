@@ -29,7 +29,7 @@ version = { file = "version.txt" }
 check = ["ruff", "mypy"]
 test = ["pytest", "pytest-cov"]
 build = ["build", "setuptools", "twine"]
-dev = ["@@OPT_DEPENDENCIES_DEV@@[check, test, build]"]
+dev = ["docugenr8-pdf[check, test, build]"]
 
 [tool.ruff]
 line-length = 120

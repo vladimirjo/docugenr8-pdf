@@ -23,11 +23,7 @@ class PdfContent:  # noqa: PLR0904
         output = f"{pdf_r} {pdf_g} {pdf_b} rg\n"
         self.stream.extend(output.encode("ascii"))
 
-    def add_page_font_with_size(
-        self,
-        page_font: str,
-        font_size: float
-        ) -> None:
+    def add_page_font_with_size(self, page_font: str, font_size: float) -> None:
         output = f"BT /{page_font} {font_size} Tf ET\n"
         self.stream.extend(output.encode("ascii"))
 
@@ -38,9 +34,7 @@ class PdfContent:  # noqa: PLR0904
         output = f"{pdf_r} {pdf_g} {pdf_b} RG\n"
         self.stream.extend(output.encode("ascii"))
 
-    def add_line_pattern(
-        self, pattern: tuple[float, float, float, float, float]
-    ) -> None:
+    def add_line_pattern(self, pattern: tuple[float, float, float, float, float]) -> None:
         # Line Cap
         # 0 - Butt cap, 1 - Round cap, 2 - Projecting square cap
         line_cap = pattern[0]
@@ -55,9 +49,7 @@ class PdfContent:  # noqa: PLR0904
 
         line_cap_string = f"{line_cap} J "
         line_join_string = f"{line_join} j "
-        dash_pattern_string = (
-            f"[{dash_pattern_on} {dash_pattern_off}] {dash_pattern_phase} d"
-        )
+        dash_pattern_string = f"[{dash_pattern_on} {dash_pattern_off}] {dash_pattern_phase} d"
         output = line_cap_string + line_join_string + dash_pattern_string + "\n"
         self.stream.extend(output.encode("ascii"))
 
@@ -152,13 +144,7 @@ class PdfContent:  # noqa: PLR0904
         fill_color: None | tuple[int, int, int],
         line_color: None | tuple[int, int, int],
         line_width: float = 1.0,
-        line_pattern: tuple[float, float, float, float, float] = (
-            0,
-            0,
-            0,
-            0,
-            0,
-        ),
+        line_pattern: tuple[float, float, float, float, float] = (0, 0, 0, 0, 0),
     ) -> None:
         self.add_savestate()
         has_fill = False
@@ -180,7 +166,5 @@ class PdfContent:  # noqa: PLR0904
             self.add_line_color(line_color)
             self.add_line_width(line_width)
             self.add_line_pattern(line_pattern)
-        self.add_rectangle_without_formatting(
-            x, y, width, height, has_fill, has_stroke
-        )
+        self.add_rectangle_without_formatting(x, y, width, height, has_fill, has_stroke)
         self.add_restore_state()

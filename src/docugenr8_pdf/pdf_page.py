@@ -3,6 +3,7 @@ import zlib
 from docugenr8_shared.colors import MaterialColors
 from docugenr8_shared.dto import DtoFragment
 from docugenr8_shared.dto import DtoTextArea
+from docugenr8_shared.dto import DtoTextBox
 
 from .core import Collector
 from .core import PdfObj
@@ -18,7 +19,7 @@ class PdfPage:
         self._pagefontname_fontresource: dict[str, PdfFont] = {}
         self._page_width: float = page_width
         self._page_height: float = page_height
-        self._page_contents = PdfContent()
+        self._page_content = PdfContent()
         self.resources_obj: None | PdfObj = None
         self.contents_obj: None | PdfObj = None
 
@@ -53,11 +54,13 @@ class PdfPage:
             match content:
                 case DtoTextArea():
                     self.generate_text_area(content, pdf_fonts, debug)
+                case DtoTextBox():
+                    self.generate_text_box(content, pdf_fonts, debug)
                 case _:
                     raise ValueError("Type not defined.")
 
     def draw_text_area(self, dto_text_area: DtoTextArea) -> None:
-        self._page_contents.add_rectangle(
+        self._page_content.add_rectangle(
             x=dto_text_area.x,
             y=self.calc_y(dto_text_area.y, dto_text_area.height),
             width=dto_text_area.width,
@@ -66,7 +69,7 @@ class PdfPage:
             line_color=MaterialColors.Gray600,
         )
         for paragraph in dto_text_area.paragraphs:
-            self._page_contents.add_rectangle(
+            self._page_content.add_rectangle(
                 x=paragraph.x,
                 y=self.calc_y(paragraph.y, paragraph.height),
                 width=paragraph.width,
@@ -75,7 +78,7 @@ class PdfPage:
                 line_color=MaterialColors.Teal600,
             )
             for text_line in paragraph.textlines:
-                self._page_contents.add_rectangle(
+                self._page_content.add_rectangle(
                     x=text_line.x,
                     y=self.calc_y(text_line.y, text_line.height),
                     width=text_line.width,
@@ -84,7 +87,7 @@ class PdfPage:
                     line_color=MaterialColors.Yellow600,
                 )
                 for word in text_line.words:
-                    self._page_contents.add_rectangle(
+                    self._page_content.add_rectangle(
                         x=word.x,
                         y=self.calc_y(word.y, word.height),
                         width=word.width,
@@ -119,8 +122,8 @@ class PdfPage:
             current_state[0] is None or current_state[1] is None or current_state[2] is None
         ) or new_state != current_state:
             page_font_name = self.get_pagefontname(fragment.font_name, pdf_fonts)
-            self._page_contents.add_page_font_with_size(page_font_name, fragment.font_size)
-            self._page_contents.add_fill_color(fragment.font_color)
+            self._page_content.add_page_font_with_size(page_font_name, fragment.font_size)
+            self._page_content.add_fill_color(fragment.font_color)
             return new_state
         return current_state
 
@@ -131,22 +134,41 @@ class PdfPage:
             if cid is not None:
                 cid_in_bytes.extend(cid)
         if len(cid_in_bytes) > 0:
-            self._page_contents.add_text(fragment.x, self.calc_y(fragment.baseline), cid_in_bytes)
+            self._page_content.add_text(fragment.x, self.calc_y(fragment.baseline), cid_in_bytes)
 
     def generate_text_area(
         self,
         dto_text_area: DtoTextArea,
         pdf_fonts: dict[str, PdfFont],
         debug: bool,
-    ):
-        self._page_contents.add_savestate()
+    ) -> None:
+        self._page_content.add_savestate()
         if debug:
             self.draw_text_area(dto_text_area)
         current_state = (None, None, None)
         for fragment in dto_text_area.fragments:
             current_state = self.check_and_update_text_state(current_state, fragment, pdf_fonts)
             self.draw_text_fragment(fragment, pdf_fonts[fragment.font_name])
-        self._page_contents.add_restore_state()
+        self._page_content.add_restore_state()
+
+    def generate_text_box(
+        self,
+        dto_textbox: DtoTextBox,
+        pdf_fonts: dict[str, PdfFont],
+        debug: bool,
+    ) -> None:
+        self._page_content.add_rectangle(
+            dto_textbox._x,
+            self.calc_y(dto_textbox._y, dto_textbox._height),
+            dto_textbox._width,
+            dto_textbox._height,
+            dto_textbox._fill_color,
+            dto_textbox._line_color,
+            dto_textbox._line_width,
+            dto_textbox._line_pattern,
+        )
+        if dto_textbox._text_area is not None:
+            self.generate_text_area(dto_textbox._text_area, pdf_fonts, debug)
 
     def build(
         self,
@@ -164,10 +186,10 @@ class PdfPage:
         self.resources_obj.set_attribute_value("/XObject", "<<\t>>")
         self.page_obj.add_attribute_value("/Contents", self.contents_obj)
         if should_compress:
-            self.contents_obj.extend_stream(zlib.compress(self._page_contents.stream))
+            self.contents_obj.extend_stream(zlib.compress(self._page_content.stream))
             self.contents_obj.set_attribute_value("/Filter", "/FlateDecode")
         else:
-            self.contents_obj.extend_stream(self._page_contents.stream)
+            self.contents_obj.extend_stream(self._page_content.stream)
         fonts_dict = {}
         for page_fontname, font in self._pagefontname_fontresource.items():
             page_fontname_formatted = f"/{page_fontname}"

@@ -25,12 +25,10 @@ class Pdf:
         for dto_page in dto.pages:
             pdf_page = PdfPage(dto_page.width, dto_page.height)
             self.pages.append(pdf_page)
-            pdf_page.add_dto_page_contents(dto_page.contents, self.fonts)
-
+            pdf_page.add_dto_page_contents(dto_page.contents, self.fonts, self.settings.debug)
 
     def _build_pdf_object_tree(self) -> None:
-        self._collector.pages_obj.set_attribute_value(
-            "/Count", len(self.pages))
+        self._collector.pages_obj.set_attribute_value("/Count", len(self.pages))
         # if self.info.has_value():
         #     self.info.build()
         for page in self.pages:
@@ -46,10 +44,8 @@ class Pdf:
             )
             if page.page_obj is None:
                 raise ValueError("Page object not defined.")
-            page.page_obj.set_attribute_value(
-                "/Parent", self._collector.pages_obj)
-            self._collector.pages_obj.add_attribute_value(
-                "/Kids", page.page_obj)
+            page.page_obj.set_attribute_value("/Parent", self._collector.pages_obj)
+            self._collector.pages_obj.add_attribute_value("/Kids", page.page_obj)
         for font in self.fonts.values():
             font.build(self.settings.compression)
         return self._collector.build_pdf()

@@ -44,12 +44,15 @@ class PdfPage:
         self.contents_obj = collector.new_obj()
 
     def add_dto_page_contents(
-        self, contents: list[object], pdf_fonts: dict[str, PdfFont]
+        self,
+        contents: list[object],
+        pdf_fonts: dict[str, PdfFont],
+        debug: bool,
     ) -> None:
         for content in contents:
             match content:
                 case DtoTextArea():
-                    self.generate_text_area(content, pdf_fonts)
+                    self.generate_text_area(content, pdf_fonts, debug)
                 case _:
                     raise ValueError("Type not defined.")
 
@@ -103,8 +106,7 @@ class PdfPage:
 
     def check_and_update_text_state(
         self,
-        current_state: tuple[float, tuple[float, float, float], str]
-        | tuple[None, None, None],
+        current_state: tuple[float, tuple[float, float, float], str] | tuple[None, None, None],
         fragment: DtoFragment,
         pdf_fonts: dict[str, PdfFont],
     ) -> tuple[float, tuple[float, float, float], str]:
@@ -114,14 +116,10 @@ class PdfPage:
             fragment.font_name,
         )
         if (
-            current_state[0] is None
-            or current_state[1] is None
-            or current_state[2] is None
+            current_state[0] is None or current_state[1] is None or current_state[2] is None
         ) or new_state != current_state:
             page_font_name = self.get_pagefontname(fragment.font_name, pdf_fonts)
-            self._page_contents.add_page_font_with_size(
-                page_font_name, fragment.font_size
-            )
+            self._page_contents.add_page_font_with_size(page_font_name, fragment.font_size)
             self._page_contents.add_fill_color(fragment.font_color)
             return new_state
         return current_state
@@ -133,20 +131,20 @@ class PdfPage:
             if cid is not None:
                 cid_in_bytes.extend(cid)
         if len(cid_in_bytes) > 0:
-            self._page_contents.add_text(
-                fragment.x, self.calc_y(fragment.baseline), cid_in_bytes
-            )
+            self._page_contents.add_text(fragment.x, self.calc_y(fragment.baseline), cid_in_bytes)
 
     def generate_text_area(
-        self, dto_text_area: DtoTextArea, pdf_fonts: dict[str, PdfFont]
+        self,
+        dto_text_area: DtoTextArea,
+        pdf_fonts: dict[str, PdfFont],
+        debug: bool,
     ):
         self._page_contents.add_savestate()
-        self.draw_text_area(dto_text_area)
+        if debug:
+            self.draw_text_area(dto_text_area)
         current_state = (None, None, None)
         for fragment in dto_text_area.fragments:
-            current_state = self.check_and_update_text_state(
-                current_state, fragment, pdf_fonts
-            )
+            current_state = self.check_and_update_text_state(current_state, fragment, pdf_fonts)
             self.draw_text_fragment(fragment, pdf_fonts[fragment.font_name])
         self._page_contents.add_restore_state()
 
@@ -160,13 +158,9 @@ class PdfPage:
             raise ValueError("Resources object not initialized.")
         if self.contents_obj is None:
             raise ValueError("Contents object not initialized.")
-        self.page_obj.set_attribute_value(
-            "/MediaBox", f"[0 0 {self._page_width} {self._page_height}]"
-        )
+        self.page_obj.set_attribute_value("/MediaBox", f"[0 0 {self._page_width} {self._page_height}]")
         self.page_obj.set_attribute_value("/Resources", self.resources_obj)
-        self.resources_obj.set_attribute_value(
-            "/ProcSet", "[/PDF /Text /ImageB /ImageC /ImageI]"
-        )
+        self.resources_obj.set_attribute_value("/ProcSet", "[/PDF /Text /ImageB /ImageC /ImageI]")
         self.resources_obj.set_attribute_value("/XObject", "<<\t>>")
         self.page_obj.add_attribute_value("/Contents", self.contents_obj)
         if should_compress:

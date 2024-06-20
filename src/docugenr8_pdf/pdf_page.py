@@ -4,6 +4,9 @@ from docugenr8_shared.colors import MaterialColors
 from docugenr8_shared.dto import DtoFragment
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextBox
+from docugenr8_shared.dto import DtoCurve
+from docugenr8_shared.dto import DtoPoint
+from docugenr8_shared.dto import DtoBezier
 
 from .core import Collector
 from .core import PdfObj
@@ -56,6 +59,8 @@ class PdfPage:
                     self.generate_text_area(content, pdf_fonts, debug)
                 case DtoTextBox():
                     self.generate_text_box(content, pdf_fonts, debug)
+                case DtoCurve():
+                    self.generate_curve(content)
                 case _:
                     raise ValueError("Type not defined.")
 
@@ -169,6 +174,35 @@ class PdfPage:
         )
         if dto_textbox._text_area is not None:
             self.generate_text_area(dto_textbox._text_area, pdf_fonts, debug)
+
+    def generate_curve(self, dto_curve: DtoCurve) -> None:
+        self._page_content.add_savestate()
+        if dto_curve._fill_color is not None:
+            self._page_content.add_fill_color(dto_curve._fill_color)
+        if dto_curve._line_color is not None:
+            self._page_content.add_line_color(dto_curve._line_color)
+            self._page_content.add_line_width(dto_curve._line_width)
+            self._page_content.add_line_pattern(dto_curve._line_pattern)
+        for index, point in enumerate(dto_curve._path):
+            if (index == 0) and isinstance(point, DtoPoint):
+                self._page_content.add_path_start_point(point._x, self.calc_y(point._y))
+                continue
+            if isinstance(point, DtoPoint):
+                self._page_content.add_path_move_point(point._x, self.calc_y(point._y))
+                continue
+            if isinstance(point, DtoBezier):
+                self._page_content.add_path_control_point(point._cp1_x, self.calc_y(point._cp1_y))
+                self._page_content.add_path_control_point(point._cp2_x, self.calc_y(point._cp2_y))
+                self._page_content.add_path_end_point(point._endp_x, self.calc_y(point._endp_y))
+        if dto_curve._closed:
+            self._page_content.add_path_close_line()
+        if dto_curve._fill_color is not None and dto_curve._line_color is not None:
+            self._page_content.add_path_both_stroke_and_fill()
+        if dto_curve._fill_color is not None and dto_curve._line_color is None:
+            self._page_content.add_path_fill()
+        if dto_curve._fill_color is None and dto_curve._line_color is not None:
+            self._page_content.add_path_stroke()
+        self._page_content.add_restore_state()
 
     def build(
         self,

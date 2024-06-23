@@ -1,12 +1,15 @@
 import zlib
 
 from docugenr8_shared.colors import MaterialColors
+from docugenr8_shared.dto import DtoArc
+from docugenr8_shared.dto import DtoBezier
+from docugenr8_shared.dto import DtoCurve
+from docugenr8_shared.dto import DtoEllipse
 from docugenr8_shared.dto import DtoFragment
+from docugenr8_shared.dto import DtoPoint
+from docugenr8_shared.dto import DtoRectangle
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextBox
-from docugenr8_shared.dto import DtoCurve
-from docugenr8_shared.dto import DtoPoint
-from docugenr8_shared.dto import DtoBezier
 
 from .core import Collector
 from .core import PdfObj
@@ -37,10 +40,18 @@ class PdfPage:
 
     def calc_y(self, y: float, height: float | None = None):
         """Change y coordinate from top-to-bottom to bottom-to-top
-        and moves content origin to bottom-left."""
+        and moves content origin to bottom-left.
+        """
         if height is None:
             return self._page_height - y
         return self._page_height - y - height
+
+    def calc_trim(self, width: float, height: float, rounded_corner: float) -> float:
+        if width < height:
+            trim = (width * (rounded_corner / 100)) / 2
+        else:
+            trim = (height * (rounded_corner / 100)) / 2
+        return trim
 
     def generate_pdf_obj(self, collector: Collector):
         self.page_obj = collector.new_obj()
@@ -61,8 +72,14 @@ class PdfPage:
                     self.generate_text_box(content, pdf_fonts, debug)
                 case DtoCurve():
                     self.generate_curve(content)
+                case DtoRectangle():
+                    self.generate_rectangle(content)
+                case DtoArc():
+                    self.generate_arc(content)
+                case DtoEllipse():
+                    self.generate_ellipse(content)
                 case _:
-                    raise ValueError("Type not defined.")
+                    raise ValueError("Type not defined in pdf module.")
 
     def draw_text_area(self, dto_text_area: DtoTextArea) -> None:
         self._page_content.add_rectangle(
@@ -202,6 +219,146 @@ class PdfPage:
             self._page_content.add_path_fill()
         if dto_curve._fill_color is None and dto_curve._line_color is not None:
             self._page_content.add_path_stroke()
+        self._page_content.add_restore_state()
+
+    def generate_rectangle(self, dto_rectangle: DtoRectangle):
+        self._page_content.add_savestate()
+        if dto_rectangle.fill_color is not None:
+            self._page_content.add_fill_color(dto_rectangle.fill_color)
+        if dto_rectangle.line_color is not None:
+            self._page_content.add_line_color(dto_rectangle.line_color)
+            self._page_content.add_line_width(dto_rectangle.line_width)
+            self._page_content.add_line_pattern(dto_rectangle.line_pattern)
+        if (
+            dto_rectangle.rounded_corner_top_left == 0
+            and dto_rectangle.rounded_corner_top_right == 0
+            and dto_rectangle.rounded_corner_bottom_right == 0
+            and dto_rectangle.rounded_corner_bottom_left == 0
+        ):
+            self._page_content.add_rectangle_without_formatting(
+                dto_rectangle.x,
+                self.calc_y(dto_rectangle.y, dto_rectangle.height),
+                dto_rectangle.width,
+                dto_rectangle.height,
+            )
+        else:
+            x = dto_rectangle.x
+            y = dto_rectangle.y
+            width = dto_rectangle.width
+            height = dto_rectangle.height
+            # if width < height:
+            #     trim: float = (width * (dto_rectangle._rounded_corners / 100)) / 2
+            # else:
+            #     trim: float = (height * (dto_rectangle._rounded_corners / 100)) / 2
+            # first point
+            self._page_content.add_path_start_point(
+                x + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_left), self.calc_y(y)
+            )
+            # second point
+            self._page_content.add_path_move_point(
+                x + width - self.calc_trim(width, height, dto_rectangle.rounded_corner_top_right), self.calc_y(y)
+            )
+            # third point
+            if dto_rectangle.rounded_corner_top_right != 0:
+                self._page_content.add_arc(
+                    x + width - self.calc_trim(width, height, dto_rectangle.rounded_corner_top_right),
+                    self.calc_y(y),
+                    x + width,
+                    self.calc_y(y + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_right)),
+                )
+            # fourth point
+            self._page_content.add_path_move_point(
+                x + width,
+                self.calc_y(y + height - self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_right)),
+            )
+            # fifth point
+            if dto_rectangle.rounded_corner_bottom_right != 0:
+                self._page_content.add_arc(
+                    x + width,
+                    self.calc_y(y + height - self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_right)),
+                    x + width - self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_right),
+                    self.calc_y(y + height),
+                )
+            # sixth point
+            self._page_content.add_path_move_point(
+                x + self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_left), self.calc_y(y + height)
+            )
+            # seventh point
+            if dto_rectangle.rounded_corner_bottom_left != 0:
+                self._page_content.add_arc(
+                    x + self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_left),
+                    self.calc_y(y + height),
+                    x,
+                    self.calc_y(y + height - self.calc_trim(width, height, dto_rectangle.rounded_corner_bottom_left)),
+                )
+            # eigth point
+            self._page_content.add_path_move_point(
+                x, self.calc_y(y + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_left))
+            )
+            # ninth point
+            if dto_rectangle.rounded_corner_top_left != 0:
+                self._page_content.add_arc(
+                    x,
+                    self.calc_y(y + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_left)),
+                    x + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_left),
+                    self.calc_y(y),
+                )
+            # close line
+            self._page_content.add_path_close_line()
+        if dto_rectangle.fill_color is not None and dto_rectangle.line_color is not None:
+            self._page_content.add_path_both_stroke_and_fill()
+        if dto_rectangle.fill_color is not None and dto_rectangle.line_color is None:
+            self._page_content.add_path_fill()
+        if dto_rectangle.fill_color is None and dto_rectangle.line_color is not None:
+            self._page_content.add_path_stroke()
+        self._page_content.add_restore_state()
+
+    def generate_arc(self, dto_arc: DtoArc) -> None:
+        if dto_arc._line_color is None:
+            return
+        self._page_content.add_savestate()
+        self._page_content.add_line_color(dto_arc._line_color)
+        self._page_content.add_line_width(dto_arc._line_width)
+        self._page_content.add_line_pattern(dto_arc._line_pattern)
+        self._page_content.add_path_start_point(dto_arc.x1, self.calc_y(dto_arc.y1))
+        self._page_content.add_arc(dto_arc.x1, self.calc_y(dto_arc.y1), dto_arc.x2, self.calc_y(dto_arc.y2))
+        self._page_content.add_path_stroke()
+        self._page_content.add_restore_state()
+
+    def generate_ellipse(self, dto_ellipse: DtoEllipse) -> None:
+        self._page_content.add_savestate()
+        has_fill = False
+        has_stroke = False
+        if dto_ellipse.fill_color is not None and dto_ellipse.line_color is not None:
+            has_fill = True
+            has_stroke = True
+            self._page_content.add_fill_color(dto_ellipse.fill_color)
+            self._page_content.add_line_color(dto_ellipse.line_color)
+            self._page_content.add_line_width(dto_ellipse.line_width)
+            self._page_content.add_line_pattern(dto_ellipse.line_pattern)
+        if dto_ellipse.fill_color is not None and dto_ellipse.line_color is None:
+            has_fill = True
+            has_stroke = False
+            self._page_content.add_fill_color(dto_ellipse.fill_color)
+        if dto_ellipse.fill_color is None and dto_ellipse.line_color is not None:
+            has_fill = False
+            has_stroke = True
+            self._page_content.add_line_color(dto_ellipse.line_color)
+            self._page_content.add_line_width(dto_ellipse.line_width)
+            self._page_content.add_line_pattern(dto_ellipse.line_pattern)
+
+        x = dto_ellipse.x
+        y = dto_ellipse.y
+        width = dto_ellipse.width
+        height = dto_ellipse.height
+        self._page_content.add_path_start_point(x, self.calc_y(y + height / 2))
+        self._page_content.add_arc(x, self.calc_y(y + height / 2), (x + width / 2), self.calc_y(y))
+        self._page_content.add_arc((x + width / 2), self.calc_y(y), (x + width), self.calc_y(y + height / 2))
+        self._page_content.add_arc((x + width), self.calc_y(y + height / 2), (x + width / 2), self.calc_y(y + height))
+        self._page_content.add_arc((x + width / 2), self.calc_y(y + height), x, self.calc_y(y + height / 2))
+        self._page_content.add_path_close_line()
+
+        self._page_content.add_fill_and_shape(has_fill, has_stroke)
         self._page_content.add_restore_state()
 
     def build(

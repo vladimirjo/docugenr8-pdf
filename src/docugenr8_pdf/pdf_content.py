@@ -95,19 +95,8 @@ class PdfContent:  # noqa: PLR0904
         y: float,
         width: float,
         height: float,
-        has_fill: bool,
-        has_stroke: bool,
     ) -> None:
-        style = ""
-        if has_fill is True and has_stroke is True:
-            style = "B"
-        if has_fill is True and has_stroke is False:
-            style = "f"
-        if has_fill is False and has_stroke is True:
-            style = "S"
-        if has_fill is False and has_stroke is False:
-            style = ""
-        output = f"{x} {y} {width} {height} re {style}\n"
+        output = f"{x} {y} {width} {height} re "
         self.stream.extend(output.encode("ascii"))
 
     def add_restore_state(self) -> None:
@@ -134,6 +123,43 @@ class PdfContent:  # noqa: PLR0904
         y1 = str(y).encode("ascii")
         output.extend(b"BT %b %b Td (%b) Tj ET\n" % (x1, y1, cid_bytes))
         self.stream.extend(output)
+
+    def add_fill_and_shape(self, has_fill: bool, has_stroke: bool) -> None:
+        style = ""
+        if has_fill is True and has_stroke is True:
+            style = "B"
+        if has_fill is True and has_stroke is False:
+            style = "f"
+        if has_fill is False and has_stroke is True:
+            style = "S"
+        if has_fill is False and has_stroke is False:
+            style = ""
+        output = f"{style}\n"
+        self.stream.extend(output.encode("ascii"))
+
+    def add_arc(self, x1: float, y1: float, x2: float, y2: float):
+        # drawing arc from (x1, y1) to (x2, y2) in clockwise orientation
+        rx: float = abs(x1 - x2)
+        ry: float = abs(y1 - y2)
+
+        if x1 > x2 and y1 > y2:
+            self.add_path_control_point(x1, y1 - 0.533 * ry)
+            self.add_path_control_point(x2 + 0.533 * rx, y2)
+            self.add_path_end_point(x2, y2)
+        elif x1 < x2 and y1 > y2:
+            self.add_path_control_point(x1 + 0.533 * rx, y1)
+            self.add_path_control_point(x2, y2 + 0.533 * ry)
+            self.add_path_end_point(x2, y2)
+        elif x1 > x2 and y1 < y2:
+            self.add_path_control_point(x1 - 0.533 * rx, y1)
+            self.add_path_control_point(x2, y2 - 0.533 * ry)
+            self.add_path_end_point(x2, y2)
+        elif x1 < x2 and y1 < y2:
+            self.add_path_control_point(x1, y1 + 0.553 * ry)
+            self.add_path_control_point(x2 - 0.533 * rx, y2)
+            self.add_path_end_point(x2, y2)
+        else:
+            raise NotImplementedError("Not implemented.")
 
     def add_rectangle(
         self,
@@ -166,5 +192,6 @@ class PdfContent:  # noqa: PLR0904
             self.add_line_color(line_color)
             self.add_line_width(line_width)
             self.add_line_pattern(line_pattern)
-        self.add_rectangle_without_formatting(x, y, width, height, has_fill, has_stroke)
+        self.add_rectangle_without_formatting(x, y, width, height)
+        self.add_fill_and_shape(has_fill, has_stroke)
         self.add_restore_state()

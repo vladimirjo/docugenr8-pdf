@@ -1,6 +1,7 @@
 from math import cos
 from math import radians
 from math import sin
+from math import tan
 
 
 class PdfContent:  # noqa: PLR0904
@@ -103,15 +104,29 @@ class PdfContent:  # noqa: PLR0904
         output = "Q\n"
         self.stream.extend(output.encode("ascii"))
 
-    def add_rotate(self, x_pos: float, y_pos: float, degrees: float) -> None:
+    def add_rotate(self, x_origin: float, y_origin: float, degrees: float) -> None:
         cos_r = cos(radians(degrees))
         sin_r = sin(radians(degrees))
         output = (
-            f"1 0 0 1 {x_pos} {y_pos} cm\n"
+            f"1 0 0 1 {x_origin} {y_origin} cm\n"
             f"{cos_r} "
             f"{sin_r} "
             f"-{sin_r} "
             f"{sin_r} "
+            f"0 0 cm\n"
+            f"1 0 0 1 -{x_origin} -{y_origin} cm\n"
+        )
+        self.stream.extend(output.encode("ascii"))
+
+    def add_skew(self, x_pos: float, y_pos: float, skew_vertical: float, skew_horizontal: float) -> None:
+        tan_vertical = tan(radians(skew_vertical))
+        tan_horizontal = tan(radians(skew_horizontal))
+        output = (
+            f"1 0 0 1 {x_pos} {y_pos} cm\n"
+            f"1 "
+            f"{tan_vertical} "
+            f"{tan_horizontal} "
+            f"1 "
             f"0 0 cm\n"
             f"1 0 0 1 -{x_pos} -{y_pos} cm\n"
         )

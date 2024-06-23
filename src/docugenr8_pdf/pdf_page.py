@@ -8,6 +8,8 @@ from docugenr8_shared.dto import DtoEllipse
 from docugenr8_shared.dto import DtoFragment
 from docugenr8_shared.dto import DtoPoint
 from docugenr8_shared.dto import DtoRectangle
+from docugenr8_shared.dto import DtoRotation
+from docugenr8_shared.dto import DtoSkew
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextBox
 
@@ -194,41 +196,64 @@ class PdfPage:
 
     def generate_curve(self, dto_curve: DtoCurve) -> None:
         self._page_content.add_savestate()
-        if dto_curve._fill_color is not None:
-            self._page_content.add_fill_color(dto_curve._fill_color)
-        if dto_curve._line_color is not None:
-            self._page_content.add_line_color(dto_curve._line_color)
-            self._page_content.add_line_width(dto_curve._line_width)
-            self._page_content.add_line_pattern(dto_curve._line_pattern)
-        for index, point in enumerate(dto_curve._path):
+        for transformation in dto_curve.transformations:
+            if isinstance(transformation, DtoRotation):
+                self._page_content.add_rotate(
+                    transformation.x_origin, self.calc_y(transformation.y_origin), transformation.degrees
+                )
+            elif isinstance(transformation, DtoSkew):
+                self._page_content.add_skew(
+                    transformation.x_origin,
+                    self.calc_y(transformation.y_origin),
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            else:
+                raise TypeError("The transformation is not a valid object.")
+        if dto_curve.fill_color is not None:
+            self._page_content.add_fill_color(dto_curve.fill_color)
+        if dto_curve.line_color is not None:
+            self._page_content.add_line_color(dto_curve.line_color)
+            self._page_content.add_line_width(dto_curve.line_width)
+            self._page_content.add_line_pattern(dto_curve.line_pattern)
+        for index, point in enumerate(dto_curve.path):
             if (index == 0) and isinstance(point, DtoPoint):
-                self._page_content.add_path_start_point(point._x, self.calc_y(point._y))
+                self._page_content.add_path_start_point(point.x, self.calc_y(point.y))
                 continue
             if isinstance(point, DtoPoint):
-                self._page_content.add_path_move_point(point._x, self.calc_y(point._y))
+                self._page_content.add_path_move_point(point.x, self.calc_y(point.y))
                 continue
             if isinstance(point, DtoBezier):
-                self._page_content.add_path_control_point(point._cp1_x, self.calc_y(point._cp1_y))
-                self._page_content.add_path_control_point(point._cp2_x, self.calc_y(point._cp2_y))
-                self._page_content.add_path_end_point(point._endp_x, self.calc_y(point._endp_y))
-        if dto_curve._closed:
+                self._page_content.add_path_control_point(point.cp1_x, self.calc_y(point.cp1_y))
+                self._page_content.add_path_control_point(point.cp2_x, self.calc_y(point.cp2_y))
+                self._page_content.add_path_end_point(point.endp_x, self.calc_y(point.endp_y))
+        if dto_curve.closed:
             self._page_content.add_path_close_line()
-        if dto_curve._fill_color is not None and dto_curve._line_color is not None:
+        if dto_curve.fill_color is not None and dto_curve.line_color is not None:
             self._page_content.add_path_both_stroke_and_fill()
-        if dto_curve._fill_color is not None and dto_curve._line_color is None:
+        if dto_curve.fill_color is not None and dto_curve.line_color is None:
             self._page_content.add_path_fill()
-        if dto_curve._fill_color is None and dto_curve._line_color is not None:
+        if dto_curve.fill_color is None and dto_curve.line_color is not None:
             self._page_content.add_path_stroke()
         self._page_content.add_restore_state()
 
     def generate_rectangle(self, dto_rectangle: DtoRectangle):
         self._page_content.add_savestate()
-        if dto_rectangle.rotate != 0:
-            self._page_content.add_rotate(
-                dto_rectangle.x + (dto_rectangle.width / 2),
-                self.calc_y(dto_rectangle.y + (dto_rectangle.height / 2)),
-                dto_rectangle.rotate,
-            )
+        for transformation in dto_rectangle.transformations:
+            if isinstance(transformation, DtoRotation):
+                self._page_content.add_rotate(
+                    transformation.x_origin, self.calc_y(transformation.y_origin), transformation.degrees
+                )
+            elif isinstance(transformation, DtoSkew):
+                self._page_content.add_skew(
+                    transformation.x_origin,
+                    self.calc_y(transformation.y_origin),
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            else:
+                raise TypeError("The transformation is not a valid object.")
+
         if dto_rectangle.fill_color is not None:
             self._page_content.add_fill_color(dto_rectangle.fill_color)
         if dto_rectangle.line_color is not None:
@@ -252,10 +277,6 @@ class PdfPage:
             y = dto_rectangle.y
             width = dto_rectangle.width
             height = dto_rectangle.height
-            # if width < height:
-            #     trim: float = (width * (dto_rectangle._rounded_corners / 100)) / 2
-            # else:
-            #     trim: float = (height * (dto_rectangle._rounded_corners / 100)) / 2
             # first point
             self._page_content.add_path_start_point(
                 x + self.calc_trim(width, height, dto_rectangle.rounded_corner_top_left), self.calc_y(y)
@@ -320,12 +341,27 @@ class PdfPage:
         self._page_content.add_restore_state()
 
     def generate_arc(self, dto_arc: DtoArc) -> None:
-        if dto_arc._line_color is None:
+        if dto_arc.line_color is None:
             return
         self._page_content.add_savestate()
-        self._page_content.add_line_color(dto_arc._line_color)
-        self._page_content.add_line_width(dto_arc._line_width)
-        self._page_content.add_line_pattern(dto_arc._line_pattern)
+        for transformation in dto_arc.transformations:
+            if isinstance(transformation, DtoRotation):
+                self._page_content.add_rotate(
+                    transformation.x_origin, self.calc_y(transformation.y_origin), transformation.degrees
+                )
+            elif isinstance(transformation, DtoSkew):
+                self._page_content.add_skew(
+                    transformation.x_origin,
+                    self.calc_y(transformation.y_origin),
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            else:
+                raise TypeError("The transformation is not a valid object.")
+
+        self._page_content.add_line_color(dto_arc.line_color)
+        self._page_content.add_line_width(dto_arc.line_width)
+        self._page_content.add_line_pattern(dto_arc.line_pattern)
         self._page_content.add_path_start_point(dto_arc.x1, self.calc_y(dto_arc.y1))
         self._page_content.add_arc(dto_arc.x1, self.calc_y(dto_arc.y1), dto_arc.x2, self.calc_y(dto_arc.y2))
         self._page_content.add_path_stroke()
@@ -333,6 +369,21 @@ class PdfPage:
 
     def generate_ellipse(self, dto_ellipse: DtoEllipse) -> None:
         self._page_content.add_savestate()
+        for transformation in dto_ellipse.transformations:
+            if isinstance(transformation, DtoRotation):
+                self._page_content.add_rotate(
+                    transformation.x_origin, self.calc_y(transformation.y_origin), transformation.degrees
+                )
+            elif isinstance(transformation, DtoSkew):
+                self._page_content.add_skew(
+                    transformation.x_origin,
+                    self.calc_y(transformation.y_origin),
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            else:
+                raise TypeError("The transformation is not a valid object.")
+
         has_fill = False
         has_stroke = False
         if dto_ellipse.fill_color is not None and dto_ellipse.line_color is not None:

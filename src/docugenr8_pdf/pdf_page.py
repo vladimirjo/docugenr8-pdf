@@ -223,6 +223,12 @@ class PdfPage:
 
     def generate_rectangle(self, dto_rectangle: DtoRectangle):
         self._page_content.add_savestate()
+        if dto_rectangle.rotate != 0:
+            self._page_content.add_rotate(
+                dto_rectangle.x + (dto_rectangle.width / 2),
+                self.calc_y(dto_rectangle.y + (dto_rectangle.height / 2)),
+                dto_rectangle.rotate,
+            )
         if dto_rectangle.fill_color is not None:
             self._page_content.add_fill_color(dto_rectangle.fill_color)
         if dto_rectangle.line_color is not None:
